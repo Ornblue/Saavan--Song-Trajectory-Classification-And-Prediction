@@ -1,4 +1,4 @@
-# Saavan Song Trajectory Intelligence — Ultimate Edition
+# Saavan Song Trajectory Intelligence 
 
 A Django-based machine learning decision-support platform for predicting the future trajectory of songs using historical streaming, engagement, exposure, and momentum signals.
 
