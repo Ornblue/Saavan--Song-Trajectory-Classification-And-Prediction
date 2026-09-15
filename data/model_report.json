@@ -1,0 +1,117 @@
+{
+  "classifier": {
+    "accuracy": 0.9225,
+    "precision": 0.8450704225352113,
+    "recall": 0.75,
+    "f1": 0.7947019867549668,
+    "roc_auc": 0.9707421875,
+    "confusion_matrix": [
+      [
+        309,
+        11
+      ],
+      [
+        20,
+        60
+      ]
+    ],
+    "test_size": 400,
+    "hit_threshold_future_streams": 7667096.600000001
+  },
+  "regression": {
+    "mae": 339373.05423916585,
+    "rmse": 426382.16390520736,
+    "r2": 0.8718212261795483
+  },
+  "feature_importance": [
+    {
+      "feature": "current_streams",
+      "importance": 0.27780055822648336
+    },
+    {
+      "feature": "current_listeners",
+      "importance": 0.20475859610521324
+    },
+    {
+      "feature": "playlist_add_rate",
+      "importance": 0.11792685915770768
+    },
+    {
+      "feature": "completion_rate",
+      "importance": 0.10670644049968814
+    },
+    {
+      "feature": "save_rate",
+      "importance": 0.09514308945632009
+    },
+    {
+      "feature": "share_rate",
+      "importance": 0.09476604640656976
+    },
+    {
+      "feature": "skip_rate",
+      "importance": 0.06413105772699815
+    },
+    {
+      "feature": "repeat_rate",
+      "importance": 0.038767352421019655
+    },
+    {
+      "feature": "avg_stream_growth",
+      "importance": 0.0
+    },
+    {
+      "feature": "max_stream_growth",
+      "importance": 0.0
+    },
+    {
+      "feature": "growth_acceleration",
+      "importance": 0.0
+    }
+  ],
+  "horizon_results": [
+    {
+      "observation_days": 1,
+      "accuracy": 0.9225,
+      "precision": 0.8356164383561644,
+      "recall": 0.7625,
+      "f1": 0.7973856209150327,
+      "roc_auc": 0.97109375
+    },
+    {
+      "observation_days": 3,
+      "accuracy": 0.9475,
+      "precision": 0.8734177215189873,
+      "recall": 0.8625,
+      "f1": 0.8679245283018868,
+      "roc_auc": 0.9869921875000001
+    },
+    {
+      "observation_days": 7,
+      "accuracy": 0.9375,
+      "precision": 0.8571428571428571,
+      "recall": 0.825,
+      "f1": 0.8407643312101911,
+      "roc_auc": 0.9834765625
+    }
+  ],
+  "dataset": {
+    "songs": 2000,
+    "users": 20000,
+    "streaming_events": 672000,
+    "daily_rows": 28000
+  },
+  "features": [
+    "current_streams",
+    "current_listeners",
+    "repeat_rate",
+    "skip_rate",
+    "completion_rate",
+    "save_rate",
+    "share_rate",
+    "playlist_add_rate",
+    "avg_stream_growth",
+    "max_stream_growth",
+    "growth_acceleration"
+  ]
+}

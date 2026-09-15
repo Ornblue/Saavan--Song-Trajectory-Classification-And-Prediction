@@ -1,0 +1,24 @@
+from django.db import models
+
+
+class SongPrediction(models.Model):
+    song_id=models.CharField(max_length=20,unique=True); song_name=models.CharField(max_length=120); artist_id=models.CharField(max_length=20); language=models.CharField(max_length=40); genre=models.CharField(max_length=40)
+    current_streams=models.FloatField(); current_listeners=models.FloatField(); repeat_rate=models.FloatField(); skip_rate=models.FloatField(); completion_rate=models.FloatField(); save_rate=models.FloatField(); share_rate=models.FloatField(); playlist_add_rate=models.FloatField(); avg_stream_growth=models.FloatField(); max_stream_growth=models.FloatField(); growth_acceleration=models.FloatField(); momentum_score=models.FloatField(); momentum_category=models.CharField(max_length=20); hit_probability=models.FloatField(); business_action=models.CharField(max_length=20); future_streams=models.FloatField(); active_regions=models.IntegerField(default=0); artist_popularity=models.FloatField(default=0)
+    class Meta: ordering=["-hit_probability"]
+
+
+class TrainingRun(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    source_file = models.CharField(max_length=255)
+    mode = models.CharField(max_length=30)
+    rows_used = models.IntegerField(default=0)
+    new_rows = models.IntegerField(default=0)
+    accuracy = models.FloatField(default=0)
+    precision = models.FloatField(default=0)
+    recall = models.FloatField(default=0)
+    f1 = models.FloatField(default=0)
+    roc_auc = models.FloatField(default=0)
+    status = models.CharField(max_length=30, default="retrained")
+
+    class Meta:
+        ordering = ["-created_at"]

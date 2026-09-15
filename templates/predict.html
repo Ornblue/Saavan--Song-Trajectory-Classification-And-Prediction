@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block heading %}Predict a Song{% endblock %}
+{% block content %}
+<div class="predict-head">
+  <div>
+    <span class="eyebrow">DECISION SUPPORT</span>
+    <h2>Forecast the next trajectory.</h2>
+    <p>Enter the 11 observation features used by the trained Random Forest. The decision cockpit combines hit probability, future-stream forecast, momentum, local explainability and actionable business levers.</p>
+  </div>
+  <div class="model-badge"><b>Random Forest</b><br><small>300 estimators · depth 10 · min leaf 5</small></div>
+</div>
+
+<div class="predict-layout">
+  <form method="post" class="panel form-panel">
+    {% csrf_token %}
+    <div class="panel-title"><div><h3>Song observation</h3><p>Use values from the same observation window as the training data.</p></div></div>
+    <div class="formgrid">{% for f in form %}<label>{{f.label}}{{f}}{% if f.errors %}<small class="form-error">{{f.errors|striptags}}</small>{% endif %}</label>{% endfor %}</div>
+    <button class="btn wide">Run AI prediction →</button>
+  </form>
+
+  {% if result %}
+  <section class="result-column">
+    <div class="decision-hero panel">
+      <div class="decision-main">
+        <span class="tag">MODEL OUTPUT</span>
+        <small>Future-hit probability</small>
+        <div class="big">{{result.hit_probability}}%</div>
+        <div class="prob-track"><i style="width:{{result.hit_probability}}%"></i></div>
+        <div class="result-tags"><span>{{result.momentum_category}}</span><span>{{result.business_action}}</span></div>
+      </div>
+      <div class="decision-side">
+        <div class="score-orb"><strong>{{result.momentum_score}}</strong><span>momentum</span></div>
+        {% if result.predicted_future_streams %}<div class="forecast-chip"><small>Predicted future streams</small><b>{{result.predicted_future_streams|floatformat:0}}</b></div>{% endif %}
+      </div>
+    </div>
+
+    <div class="panel explain-summary">
+      <div class="panel-title"><div><span class="eyebrow">WHY THIS SCORE?</span><h3>Model explanation at a glance</h3><p>Local counterfactual impact: each feature is replaced by its training-data median and the change in predicted probability is measured. This is model explanation, not causal proof.</p></div></div>
+      <div class="explain-grid">
+        <div class="chart-wrap xl"><canvas id="impactChart"></canvas></div>
+        <div class="chart-wrap xl"><canvas id="momentumChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><div><span class="eyebrow">DECISION LEVERS</span><h3>What could move the forecast?</h3><p>One-at-a-time scenarios toward a stronger observed training-data region. Positive lift means the model would raise hit probability.</p></div></div>
+      <div class="chart-wrap tall"><canvas id="leverChart"></canvas></div>
+      <div class="lever-list">{% for x in result.improvement_levers %}<div class="lever-row"><div><b>{{x.label}}</b><small>{{x.direction}} from {{x.current}} toward {{x.target}}</small></div><strong class="{% if x.delta < 0 %}down{% endif %}">{% if x.delta >= 0 %}+{% endif %}{{x.delta}} pp</strong></div>{% empty %}<p>No meaningful one-feature lever was identified.</p>{% endfor %}</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><div><span class="eyebrow">SIGNAL DETAIL</span><h3>Every model input, made readable</h3></div></div>
+      <div class="impact-table">{% for x in result.contributors %}<div class="impact-row"><div><b>{{x.label}}</b><small>Current {{x.current|floatformat:4}} · Median {{x.median|floatformat:4}}</small></div><span class="impact-pill {% if x.delta < 0 %}negative{% elif x.delta > 0 %}positive{% else %}neutral{% endif %}">{% if x.delta >= 0 %}+{% endif %}{{x.delta}} pp</span><em>{{x.direction}}</em></div>{% endfor %}</div>
+    </div>
+
+    <div class="panel action-box {% if result.business_action == 'PROMOTE' %}action-hot{% elif result.business_action == 'MONITOR' %}action-watch{% elif result.business_action == 'RECONSIDER' %}action-risk{% endif %}">
+      <span class="eyebrow">RECOMMENDED BUSINESS ACTION</span>
+      <h3>{{result.business_action}}</h3>
+      {% if result.business_action == 'PROMOTE' %}<p>Increase playlist/editorial exposure and targeted campaign support. Recheck the next observation window before scaling spend further.</p>
+      {% elif result.business_action == 'MONITOR' %}<p>Keep controlled exposure and watch growth, saves, shares, completion and repeat behavior before increasing investment.</p>
+      {% elif result.business_action == 'MAINTAIN' %}<p>Maintain current distribution. The trajectory is not strong enough to justify aggressive incremental spend yet.</p>
+      {% else %}<p>Reduce incremental promotion and investigate the weak engagement signals. Reconsider only after the trajectory improves.</p>{% endif %}
+    </div>
+  </section>
+  {% else %}
+  <section class="panel empty-result"><div><div class="empty-icon">✦</div><h3>Your decision cockpit is ready.</h3><p>Run a prediction to see probability, momentum, feature impacts, improvement scenarios and a business recommendation.</p></div></section>
+  {% endif %}
+</div>
+
+{% if result %}
+<script>
+const impacts={{result.contributors|safe}};
+const momentum={{result.momentum_components|safe}};
+const levers={{result.improvement_levers|safe}};
+const chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aeb5c4',boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{color:'rgba(255,255,255,.055)'},ticks:{color:'#858c9b'}},y:{grid:{color:'rgba(255,255,255,.055)'},ticks:{color:'#858c9b'}}}};
+new Chart(document.getElementById('impactChart'),{type:'bar',data:{labels:impacts.map(x=>x.label),datasets:[{label:'Probability impact (percentage points)',data:impacts.map(x=>x.delta),backgroundColor:impacts.map(x=>x.delta>=0?'#9b7cff':'#ef6e82'),borderRadius:6}]},options:{...chartOpts,indexAxis:'y',plugins:{...chartOpts.plugins,legend:{display:false}},scales:{x:{...chartOpts.scales.x,title:{display:true,text:'Change in hit probability (pp)',color:'#858c9b'}},y:{...chartOpts.scales.y}}}});
+new Chart(document.getElementById('momentumChart'),{type:'radar',data:{labels:momentum.map(x=>x.label),datasets:[{label:'Signal strength',data:momentum.map(x=>x.score),fill:true,borderWidth:2,pointRadius:3,backgroundColor:'rgba(155,124,255,.14)',borderColor:'#9b7cff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{color:'#858c9b',backdropColor:'transparent'},grid:{color:'rgba(255,255,255,.08)'},angleLines:{color:'rgba(255,255,255,.08)'},pointLabels:{color:'#aeb5c4',font:{size:10}}}}}});
+new Chart(document.getElementById('leverChart'),{type:'bar',data:{labels:levers.map(x=>x.label),datasets:[{label:'Potential modeled lift',data:levers.map(x=>x.delta),borderRadius:6}]},options:{...chartOpts,indexAxis:'y',plugins:{...chartOpts.plugins,legend:{display:false}},scales:{x:{...chartOpts.scales.x,title:{display:true,text:'Change in hit probability (pp)',color:'#858c9b'}},y:{...chartOpts.scales.y}}}});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block heading %}Music Intelligence{% endblock %}
+{% block content %}
+<section class="hero hero-clean">
+  <div><span class="tag">LIVE DEMO MONITORING</span><h2>Know which songs deserve attention next.</h2><p>One screen for trajectory, hit probability, momentum, opportunities and business actions.</p></div>
+  <div class="livebox"><b id="liveStatus">● LIVE</b><small id="clock">—</small><span>10s refresh</span></div>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi"><small>Tracks monitored</small><strong id="kTotal">{{d.total}}</strong><span>Model-ready songs</span></div>
+  <div class="kpi accent"><small>Breakout tracks</small><strong id="kBreakouts">{{d.breakouts}}</strong><span>Momentum ≥ 80</span></div>
+  <div class="kpi"><small>Promote now</small><strong id="kPromote">{{d.promote}}</strong><span>High-value action</span></div>
+  <div class="kpi"><small>Avg hit probability</small><strong id="kHit">{{d.avg_hit}}%</strong><span>Across catalog</span></div>
+  <div class="kpi"><small>Avg momentum</small><strong id="kMomentum">{{d.avg_momentum}}</strong><span>0–100 score</span></div>
+  <div class="kpi"><small>Avg future streams</small><strong id="kFuture">{{d.avg_future_streams|floatformat:0}}</strong><span>Regression forecast</span></div>
+</section>
+
+<div class="section-title"><div><span class="eyebrow">CATALOG SIGNALS</span><h3>Portfolio overview</h3></div><span class="muted">Interactive · hover for details</span></div>
+<section class="chart-grid two">
+  <div class="panel chart-panel"><div class="panel-title"><div><h3>Top hit probabilities</h3><p>Tracks with the strongest predicted chance of entering the top 20%.</p></div></div><div class="chart-wrap tall"><canvas id="topChart"></canvas></div></div>
+  <div class="panel chart-panel"><div class="panel-title"><div><h3>Momentum × hit probability</h3><p>Ideal targets sit toward the upper-right.</p></div></div><div class="chart-wrap tall"><canvas id="scatterChart"></canvas></div></div>
+</section>
+<section class="chart-grid two">
+  <div class="panel chart-panel"><div class="panel-title"><div><h3>Exposure vs. future-hit signal</h3><p>Find songs that are underexposed despite strong predicted hit probability.</p></div></div><div class="chart-wrap tall"><canvas id="exposureChart"></canvas></div></div>
+  <div class="panel chart-panel"><div class="panel-title"><div><h3>Current streams vs. future forecast</h3><p>Tracks above the diagonal are forecast to grow beyond their current observed volume.</p></div></div><div class="chart-wrap tall"><canvas id="forecastChart"></canvas></div></div>
+</section>
+<section class="chart-grid three">
+  <div class="panel chart-panel"><h3>Action mix</h3><p>Where the catalog is currently being directed.</p><div class="chart-wrap"><canvas id="actionChart"></canvas></div></div>
+  <div class="panel chart-panel"><h3>Average hit probability by language</h3><p>Compare market-level opportunity.</p><div class="chart-wrap"><canvas id="languageChart"></canvas></div></div>
+  <div class="panel chart-panel"><h3>Average momentum by genre</h3><p>Genres with stronger current momentum.</p><div class="chart-wrap"><canvas id="genreChart"></canvas></div></div>
+</section>
+
+<div class="section-title"><div><span class="eyebrow">BUSINESS INTELLIGENCE</span><h3>Where to act</h3></div></div>
+<section class="insight-grid">
+  <div class="insight-card hot"><div class="insight-icon">↗</div><div><span>Hidden opportunities</span><strong>Low current streams + high hit probability</strong><p>These tracks may be underexposed relative to their predicted future potential.</p></div><b class="count-pill" id="oppCount">{{d.opportunities|length}}</b></div>
+  <div class="insight-card warn"><div class="insight-icon">!</div><div><span>Potential decliners</span><strong>High current streams + weak hit probability</strong><p>Protect spend by checking whether today's volume is masking deteriorating trajectory.</p></div><b class="count-pill" id="decCount">{{d.decliners|length}}</b></div>
+  <div class="insight-card neutral"><div class="insight-icon">◎</div><div><span>Rising pipeline</span><strong>{{d.rising}} tracks currently in RISING</strong><p>These are candidates for controlled exposure increases and close monitoring.</p></div></div>
+  <div class="insight-card neutral"><div class="insight-icon">◈</div><div><span>Best market signal</span><strong id="topLanguage">{{d.top_language}}</strong><p>Highest average modeled hit probability across languages.</p></div></div>
+  <div class="insight-card neutral"><div class="insight-icon">◆</div><div><span>Strongest genre signal</span><strong id="topGenre">{{d.top_genre}}</strong><p>Highest average modeled hit probability across genres.</p></div></div>
+</section>
+
+<section class="panel table-panel"><div class="panel-title"><div><span class="eyebrow">OPPORTUNITY QUEUE</span><h3>Tracks to investigate</h3><p>Prioritize high-probability tracks before increasing spend.</p></div><a class="text-link" href="/dataset/">Open full dataset →</a></div>
+<div class="table"><table><thead><tr><th>Track</th><th>Market</th><th>Genre</th><th>Streams</th><th>Momentum</th><th>Hit %</th><th>Action</th></tr></thead><tbody id="oppTable">{% for s in d.opportunities %}<tr><td><a href="/songs/{{s.song_id}}/"><b>{{s.song_name}}</b></a><small>{{s.song_id}}</small></td><td>{{s.language}}</td><td>{{s.genre}}</td><td>{{s.current_streams|floatformat:0}}</td><td>{{s.momentum_score|floatformat:1}}</td><td><b>{{s.hit_probability|floatformat:1}}%</b></td><td><span class="action {{s.business_action|lower}}">{{s.business_action}}</span></td></tr>{% empty %}<tr><td colspan="7">No hidden opportunities match the current thresholds.</td></tr>{% endfor %}</tbody></table></div></section>
+
+<script>
+const topData={{top|safe}}, scatterData={{scatter|safe}}, dUrl='/api/dashboard/';
+const chartDefaults={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,usePointStyle:true,color:'#aeb5c4'}}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#858c9b'}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#858c9b'}}}};
+const topChart=new Chart(document.getElementById('topChart'),{type:'bar',data:{labels:topData.map(x=>x.song_name),datasets:[{label:'Hit probability',data:topData.map(x=>x.hit_probability),borderRadius:7}]},options:{...chartDefaults,indexAxis:'y',plugins:{...chartDefaults.plugins,legend:{display:false}},scales:{x:{...chartDefaults.scales.x,min:0,max:100,title:{display:true,text:'Hit probability %',color:'#858c9b'}},y:{...chartDefaults.scales.y}}}});
+const scatterChart=new Chart(document.getElementById('scatterChart'),{type:'scatter',data:{datasets:[{label:'Songs',data:scatterData.map(x=>({x:x.momentum_score,y:x.hit_probability,label:x.song_name}))}]},options:{...chartDefaults,plugins:{...chartDefaults.plugins,tooltip:{callbacks:{label:c=>`${c.raw.label}: momentum ${c.raw.x.toFixed(1)}, hit ${c.raw.y.toFixed(1)}%`}}},scales:{x:{...chartDefaults.scales.x,min:0,max:100,title:{display:true,text:'Momentum score',color:'#858c9b'}},y:{...chartDefaults.scales.y,min:0,max:100,title:{display:true,text:'Hit probability %',color:'#858c9b'}}}}});
+const exposureChart=new Chart(document.getElementById('exposureChart'),{type:'scatter',data:{datasets:[{label:'Songs',data:scatterData.map(x=>({x:x.current_streams,y:x.hit_probability,label:x.song_name}))}]},options:{...chartDefaults,plugins:{...chartDefaults.plugins,tooltip:{callbacks:{label:c=>`${c.raw.label}: ${Math.round(c.raw.x).toLocaleString()} streams, ${c.raw.y.toFixed(1)}% hit`}}},scales:{x:{type:'logarithmic',grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#858c9b'},title:{display:true,text:'Current streams (log scale)',color:'#858c9b'}},y:{...chartDefaults.scales.y,min:0,max:100,title:{display:true,text:'Hit probability %',color:'#858c9b'}}}}});
+const forecastChart=new Chart(document.getElementById('forecastChart'),{type:'scatter',data:{datasets:[{label:'Songs',data:scatterData.filter(x=>x.future_streams).map(x=>({x:x.current_streams,y:x.future_streams,label:x.song_name}))}]},options:{...chartDefaults,plugins:{...chartDefaults.plugins,tooltip:{callbacks:{label:c=>`${c.raw.label}: current ${Math.round(c.raw.x).toLocaleString()}, forecast ${Math.round(c.raw.y).toLocaleString()}`}}},scales:{x:{type:'logarithmic',grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#858c9b'},title:{display:true,text:'Current streams (log scale)',color:'#858c9b'}},y:{type:'logarithmic',grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#858c9b'},title:{display:true,text:'Predicted future streams (log scale)',color:'#858c9b'}}}}});
+let actionChart,languageChart,genreChart;
+function makeBars(){
+ fetch(dUrl).then(r=>r.json()).then(d=>{
+  document.getElementById('kTotal').textContent=d.total;document.getElementById('kBreakouts').textContent=d.breakouts;document.getElementById('kPromote').textContent=d.promote;document.getElementById('kHit').textContent=d.avg_hit+'%';document.getElementById('kMomentum').textContent=d.avg_momentum;document.getElementById('kFuture').textContent=Math.round(d.avg_future_streams).toLocaleString();document.getElementById('topLanguage').textContent=d.top_language;document.getElementById('topGenre').textContent=d.top_genre;document.getElementById('oppCount').textContent=d.opportunities.length;document.getElementById('decCount').textContent=d.decliners.length;
+  if(actionChart)actionChart.destroy();if(languageChart)languageChart.destroy();if(genreChart)genreChart.destroy();
+  actionChart=new Chart(document.getElementById('actionChart'),{type:'doughnut',data:{labels:d.actions.map(x=>x.business_action),datasets:[{data:d.actions.map(x=>x.count),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#aeb5c4',boxWidth:10}}}}});
+  languageChart=new Chart(document.getElementById('languageChart'),{type:'bar',data:{labels:d.languages.map(x=>x.language),datasets:[{label:'Avg hit %',data:d.languages.map(x=>x.avg_hit)}]},options:{...chartDefaults,indexAxis:'y',plugins:{...chartDefaults.plugins,legend:{display:false}},scales:{x:{...chartDefaults.scales.x,min:0,max:100},y:{...chartDefaults.scales.y}}}});
+  genreChart=new Chart(document.getElementById('genreChart'),{type:'bar',data:{labels:d.genres.map(x=>x.genre),datasets:[{label:'Avg momentum',data:d.genres.map(x=>x.avg_momentum)}]},options:{...chartDefaults,indexAxis:'y',plugins:{...chartDefaults.plugins,legend:{display:false}},scales:{x:{...chartDefaults.scales.x,min:0,max:100},y:{...chartDefaults.scales.y}}}});
+  const body=document.getElementById('oppTable');body.innerHTML=d.opportunities.length?d.opportunities.map(s=>`<tr><td><a href="/songs/${s.song_id}/"><b>${s.song_name}</b></a><small>${s.song_id}</small></td><td>${s.language}</td><td>${s.genre}</td><td>${Math.round(s.current_streams).toLocaleString()}</td><td>${s.momentum_score.toFixed(1)}</td><td><b>${s.hit_probability.toFixed(1)}%</b></td><td><span class="action ${s.business_action.toLowerCase()}">${s.business_action}</span></td></tr>`).join(''):'<tr><td colspan="7">No hidden opportunities match the current thresholds.</td></tr>';
+ }).catch(()=>{});
+}
+makeBars();
+async function live(){try{const d=await (await fetch('/api/live/')).json();d.tracks.forEach(x=>{const p=document.getElementById('p-'+x.id);const m=document.getElementById('m-'+x.id);if(p)p.textContent=x.p+'%';if(m)m.textContent=x.m});document.getElementById('clock').textContent=new Date(d.timestamp).toLocaleTimeString();}catch(e){document.getElementById('liveStatus').textContent='● OFFLINE'}}
+live();setInterval(()=>{live();makeBars()},10000);
+</script>
+{% endblock %}

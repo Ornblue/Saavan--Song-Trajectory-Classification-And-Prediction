@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block heading %}{{song.song_name}}{% endblock %}
+{% block content %}
+<section class="hero hero-clean song-hero">
+  <div><span class="tag">{{song.song_id}} · {{song.artist_id}}</span><h2>{{song.song_name}}</h2><p>{{song.language}} · {{song.genre}}</p></div>
+  <div class="song-score"><small>Future-hit probability</small><strong>{{song.hit_probability|floatformat:1}}%</strong><span>{{song.business_action}}</span></div>
+</section>
+
+<section class="kpi-grid song-kpis">
+  <div class="kpi accent"><small>Hit probability</small><strong>{{song.hit_probability|floatformat:1}}%</strong><span>Top-hit classifier</span></div>
+  <div class="kpi"><small>Momentum</small><strong>{{song.momentum_score|floatformat:1}}</strong><span>{{song.momentum_category}}</span></div>
+  <div class="kpi"><small>Current streams</small><strong>{{song.current_streams|floatformat:0}}</strong><span>Observed streams</span></div>
+  <div class="kpi"><small>Future-stream forecast</small><strong>{% if local.predicted_future_streams %}{{local.predicted_future_streams|floatformat:0}}{% else %}—{% endif %}</strong><span>Regression estimate</span></div>
+  <div class="kpi"><small>Business action</small><strong>{{song.business_action}}</strong><span>Decision support</span></div>
+</section>
+
+<section class="chart-grid two">
+  <div class="panel chart-panel"><div class="panel-title"><div><span class="eyebrow">LOCAL EXPLAINABILITY</span><h3>What is pushing the forecast?</h3><p>Positive values support the current prediction; negative values pull it down.</p></div></div><div class="chart-wrap xl"><canvas id="songImpact"></canvas></div></div>
+  <div class="panel chart-panel"><div class="panel-title"><div><span class="eyebrow">MOMENTUM PROFILE</span><h3>Engagement signal strength</h3><p>The six components that form the 0–100 momentum score.</p></div></div><div class="chart-wrap xl"><canvas id="songRadar"></canvas></div></div>
+</section>
+
+<section class="panel">
+  <div class="panel-title"><div><span class="eyebrow">SIGNAL PROFILE</span><h3>Observed engagement and growth</h3><p>Raw values from the prediction dataset.</p></div></div>
+  <div class="signal-grid">
+    <div><span>Repeat rate</span><b>{{song.repeat_rate|floatformat:3}}</b></div><div><span>Skip rate</span><b>{{song.skip_rate|floatformat:3}}</b></div><div><span>Completion</span><b>{{song.completion_rate|floatformat:3}}</b></div><div><span>Save rate</span><b>{{song.save_rate|floatformat:3}}</b></div><div><span>Share rate</span><b>{{song.share_rate|floatformat:3}}</b></div><div><span>Playlist add</span><b>{{song.playlist_add_rate|floatformat:3}}</b></div><div><span>Avg growth</span><b>{{song.avg_stream_growth|floatformat:3}}</b></div><div><span>Max growth</span><b>{{song.max_stream_growth|floatformat:3}}</b></div><div><span>Acceleration</span><b>{{song.growth_acceleration|floatformat:3}}</b></div>
+  </div>
+</section>
+
+<section class="panel action-box {% if song.business_action == 'PROMOTE' %}action-hot{% elif song.business_action == 'MONITOR' %}action-watch{% elif song.business_action == 'RECONSIDER' %}action-risk{% endif %}">
+  <span class="eyebrow">BUSINESS INTERPRETATION</span>
+  <h3>{{song.business_action}} · {{song.momentum_category}}</h3>
+  {% if song.business_action == 'PROMOTE' %}<p>This track combines a strong modeled future-hit signal with enough momentum to justify increased exposure. Scale carefully and validate the next observation window.</p>
+  {% elif song.business_action == 'MONITOR' %}<p>The model sees meaningful future-hit potential, but the evidence is not strong enough for aggressive spend. Watch the leading engagement signals before scaling.</p>
+  {% elif song.business_action == 'MAINTAIN' %}<p>Current momentum is healthy enough to maintain distribution, but the model does not identify sufficient hit probability for aggressive incremental promotion.</p>
+  {% else %}<p>The current trajectory does not justify incremental promotion. Investigate weak engagement signals and reassess after new observations arrive.</p>{% endif %}
+</section>
+
+<script>
+const impacts={{local.contributors|safe}};
+const momentum={{local.momentum_components|safe}};
+const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aeb5c4',boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{color:'rgba(255,255,255,.055)'},ticks:{color:'#858c9b'}},y:{grid:{color:'rgba(255,255,255,.055)'},ticks:{color:'#858c9b'}}}};
+new Chart(document.getElementById('songImpact'),{type:'bar',data:{labels:impacts.map(x=>x.label),datasets:[{label:'Impact (pp)',data:impacts.map(x=>x.delta),backgroundColor:impacts.map(x=>x.delta>=0?'#9b7cff':'#ef6e82'),borderRadius:6}]},options:{...opts,indexAxis:'y',plugins:{...opts.plugins,legend:{display:false}},scales:{x:{...opts.scales.x,title:{display:true,text:'Change in hit probability (pp)',color:'#858c9b'}},y:{...opts.scales.y}}}});
+new Chart(document.getElementById('songRadar'),{type:'radar',data:{labels:momentum.map(x=>x.label),datasets:[{label:'Signal strength',data:momentum.map(x=>x.score),fill:true,borderWidth:2,pointRadius:3,backgroundColor:'rgba(155,124,255,.14)',borderColor:'#9b7cff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{color:'#858c9b',backdropColor:'transparent'},grid:{color:'rgba(255,255,255,.08)'},angleLines:{color:'rgba(255,255,255,.08)'},pointLabels:{color:'#aeb5c4',font:{size:10}}}}}});
+</script>
+{% endblock %}
